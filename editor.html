@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peta Digital Interaktif GIS - Visual Map Editor & Custom Polygon Export</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app-container">
+    
+    <!-- HEADER NAVBAR -->
+    <header class="app-header">
+      <div class="brand-container">
+        <div class="brand-icon">
+          <i class="fa-solid fa-map-location-dot"></i>
+        </div>
+        <div class="brand-text">
+          <h1 id="header-title">PETA DIGITAL INTERAKTIF</h1>
+          <p id="header-subtitle">Visual Map Editor Mode - Klik & Gambar Langsung di Web</p>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <!-- Mode Editor Switch -->
+        <button id="btn-toggle-editor" class="btn-header btn-editor-toggle">
+          <i class="fa-solid fa-pen-to-square"></i>
+          <span>Mode Editor: <strong id="editor-status-text">OFF</strong></span>
+        </button>
+
+        <!-- Tombol Custom Export Area (PNG / PDF) -->
+        <button id="btn-open-export-modal" class="btn-header btn-header-export">
+          <i class="fa-solid fa-camera-retro"></i>
+          <span>Ekspor Area (Gambar / PDF)</span>
+        </button>
+
+        <button id="btn-download-public-html" class="btn-header" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.4);" title="Unduh file HTML publik bersih tanpa editor untuk diupload/deploy">
+          <i class="fa-solid fa-globe"></i> Unduh Web Publik (Siap Deploy)
+        </button>
+
+        <button id="btn-export-code" class="btn-header btn-header-primary" title="Download file data.js terbaru">
+          <i class="fa-solid fa-file-code"></i> Download data.js
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN WORKSPACE -->
+    <div class="main-workspace">
+      
+      <!-- SIDEBAR PANEL -->
+      <aside id="sidebar" class="sidebar-panel">
+        
+        <!-- Sidebar Navigation Tabs -->
+        <div class="sidebar-tabs">
+          <button class="tab-btn active" data-tab="tab-editor-tools">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Edit Web
+          </button>
+          <button class="tab-btn" data-tab="tab-pois">
+            <i class="fa-solid fa-layer-group"></i> POI & Lokasi
+          </button>
+          <button class="tab-btn" data-tab="tab-layers">
+            <i class="fa-solid fa-map"></i> Layer Peta
+          </button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div class="tab-content-container">
+          
+          <!-- TAB EDIT WEB (VISUAL EDITOR TOOLS) -->
+          <div id="tab-editor-tools" class="tab-pane active">
+            <div class="editor-welcome-card">
+              <h3><i class="fa-solid fa-pen-to-square"></i> Visual Map Editor</h3>
+              <p>Tambah titik lokasi & gambar wilayah langsung dari browser tanpa perlu mengetik kode.</p>
+            </div>
+
+            <div class="section-title">Alat Tambah Visual</div>
+            
+            <div class="editor-action-grid">
+              <button id="btn-add-poi-mode" class="btn-editor-action">
+                <i class="fa-solid fa-location-dot" style="color: #10b981;"></i>
+                <div>
+                  <strong>+ Tambah Marker POI</strong>
+                  <small>Klik lokasi di peta untuk pasang pin</small>
+                </div>
+              </button>
+
+              <button id="btn-add-polygon-mode" class="btn-editor-action">
+                <i class="fa-solid fa-draw-polygon" style="color: #f59e0b;"></i>
+                <div>
+                  <strong>+ Gambar Polygon Area</strong>
+                  <small>Klik sudut-sudut wilayah di peta</small>
+                </div>
+              </button>
+
+              <button id="btn-add-line-mode" class="btn-editor-action">
+                <i class="fa-solid fa-route" style="color: #3b82f6;"></i>
+                <div>
+                  <strong>+ Gambar Garis Jalan / Irigasi</strong>
+                  <small>Klik jalur jalan atau sungai di peta</small>
+                </div>
+              </button>
+            </div>
+
+            <div class="section-title" style="margin-top: 20px;">Ekspor & Kelola Data</div>
+            <div class="editor-action-grid">
+              <button id="btn-side-export-custom" class="btn-tool" style="background: rgba(16, 185, 129, 0.15); color: var(--primary); border-color: var(--primary);">
+                <span><i class="fa-solid fa-file-pdf"></i> Ekspor Custom PDF / Gambar</span>
+              </button>
+              <button id="btn-download-json" class="btn-tool">
+                <span><i class="fa-solid fa-download"></i> Ekspor File data.js</span>
+              </button>
+              <button id="btn-reset-all" class="btn-tool" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.4);">
+                <span><i class="fa-solid fa-trash"></i> Reset Hapus Semua Data</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- TAB POI & PENCARIAN -->
+          <div id="tab-pois" class="tab-pane">
+            <div class="search-box-wrapper">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="search-input" placeholder="Cari nama lokasi, tempat...">
+            </div>
+
+            <div class="category-chips" id="category-filter">
+              <button class="chip active" data-cat="all">Semua</button>
+              <button class="chip" data-cat="Pendidikan">Pendidikan</button>
+              <button class="chip" data-cat="Ibadah">Ibadah</button>
+              <button class="chip" data-cat="UMKM">UMKM</button>
+              <button class="chip" data-cat="Fasilitas Umum">Fasum</button>
+              <button class="chip" data-cat="Pertanian">Pertanian</button>
+            </div>
+
+            <div class="section-title">
+              <span>Daftar Titik Lokasi</span>
+              <span id="poi-count-badge" class="poi-tag">0 Titik</span>
+            </div>
+
+            <div id="poi-list-container" class="poi-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- TAB LAYER & BASEMAP -->
+          <div id="tab-layers" class="tab-pane">
+            <div class="layer-section">
+              <div class="section-title">Pilih Basemap</div>
+              <div class="basemap-grid">
+                <div class="basemap-item active" data-basemap="osm">
+                  <i class="fa-solid fa-map-marked-alt"></i>
+                  <span>Standard</span>
+                </div>
+                <div class="basemap-item" data-basemap="satellite">
+                  <i class="fa-solid fa-satellite"></i>
+                  <span>Satelit</span>
+                </div>
+                <div class="basemap-item" data-basemap="dark">
+                  <i class="fa-solid fa-moon"></i>
+                  <span>Dark GIS</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </aside>
+
+      <!-- Sidebar Toggle Button -->
+      <button id="sidebar-toggle" class="sidebar-toggle-btn" title="Buka/Tutup Sidebar">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <!-- Floating Editor Active Banner -->
+      <div id="editor-active-banner" class="editor-active-banner" style="display: none;">
+        <span id="editor-instruction-text">📍 Mode Tambah POI Aktif: Klik pada titik peta mana saja!</span>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button id="btn-finish-editor-action" style="display: none; background: #10b981; color: #ffffff; padding: 6px 14px; font-weight: 700; font-size: 0.82rem; border: none; border-radius: 6px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">
+            <i class="fa-solid fa-circle-check"></i> Selesai Gambar
+          </button>
+          <button id="btn-cancel-editor-action" class="btn-cancel-action">Batal</button>
+        </div>
+      </div>
+
+      <!-- MAP CANVAS -->
+      <div id="map"></div>
+
+    </div>
+  </div>
+
+  <!-- MODAL CUSTOM EXPORT AREA (PNG / PDF) -->
+  <div id="modal-export-custom" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header-banner" style="height: auto; padding: 18px; justify-content: space-between;">
+        <h3><i class="fa-solid fa-camera-retro"></i> Ekspor Peta Area Custom</h3>
+        <button id="modal-export-close" class="modal-close-btn" style="position: static;"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="form-group-editor">
+          <label>1. Tentukan Garis Batas Wilayah Ekspor:</label>
+          <div class="export-mode-grid">
+            <button type="button" id="btn-draw-crop-box" class="btn-export-option active">
+              <i class="fa-solid fa-draw-polygon" style="color: #10b981;"></i>
+              <span>Gambar Garis Batas Polygon (Point-by-Point)</span>
+            </button>
+            <button type="button" id="btn-select-full-view" class="btn-export-option">
+              <i class="fa-solid fa-expand"></i>
+              <span>Seluruh Tampilan Layar</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="crop-instruction-box" class="info-box" style="margin: 10px 0; background: rgba(16, 185, 129, 0.15); border-color: var(--primary);">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span id="crop-status-text"><i class="fa-solid fa-draw-polygon" style="color: var(--primary);"></i> Klik titik demi titik di peta di sekitar wilayah yang mau diekspor (seperti membuat garis jalan/area)!</span>
+          </div>
+          <button type="button" id="btn-start-drawing-crop" class="btn-tool" style="margin-top: 8px; background: var(--primary); color: #000; justify-content: center; font-weight: 700;">
+            <i class="fa-solid fa-pen-nib"></i> Gambar Garis Batas Ekspor di Peta Sekarang
+          </button>
+        </div>
+
+        <div class="form-group-editor" style="margin-top: 14px;">
+          <label>2. Format Berkas Output:</label>
+          <div class="export-format-grid">
+            <label class="radio-card active">
+              <input type="radio" name="export-format" value="png" checked>
+              <i class="fa-solid fa-file-image"></i>
+              <span>Gambar PNG (HD)</span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="export-format" value="jpeg">
+              <i class="fa-solid fa-image"></i>
+              <span>Gambar JPEG</span>
+            </label>
+            <label class="radio-card">
+              <input type="radio" name="export-format" value="pdf">
+              <i class="fa-solid fa-file-pdf"></i>
+              <span>Dokumen PDF</span>
+            </label>
+          </div>
+        </div>
+
+        <div id="pdf-options-container" class="form-group-editor" style="display: none;">
+          <label>Orientasi Halaman PDF:</label>
+          <select id="export-pdf-orientation">
+            <option value="landscape">Landscape (Mendatar - Recommended)</option>
+            <option value="portrait">Portrait (Tegak)</option>
+          </select>
+        </div>
+
+        <div class="form-group-editor">
+          <label>3. Elemen Tambahan yang Ditampilkan:</label>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.8rem; color: var(--text-main);">
+            <label><input type="checkbox" id="export-inc-header" checked> Include Judul & Profile Wilayah</label>
+            <label><input type="checkbox" id="export-inc-legend" checked> Include Legenda Warna</label>
+            <label><input type="checkbox" id="export-inc-date" checked> Include Tanggal & Jam Ekspor</label>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px;">
+          <button id="btn-process-export" class="btn-modal-action primary" style="padding: 12px;">
+            <i class="fa-solid fa-download"></i> Generasi & Unduh Berkas
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL FORM TAMBAH / EDIT POI -->
+  <div id="modal-poi-form" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header-banner" style="height: auto; padding: 18px; justify-content: space-between;">
+        <h3 id="form-poi-title"><i class="fa-solid fa-plus-circle"></i> Tambah Titik Lokasi Baru</h3>
+        <button id="modal-form-close" class="modal-close-btn" style="position: static;"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <div class="modal-body">
+        <form id="poi-editor-form">
+          <input type="hidden" id="form-poi-id">
+          
+          <div class="form-group-editor">
+            <label>Nama Tempat / Fasilitas:*</label>
+            <input type="text" id="form-poi-nama" required placeholder="Contoh: Masjid Al-Ikhlas">
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group-editor">
+              <label>Kategori:*</label>
+              <select id="form-poi-kategori" required>
+                <option value="Pendidikan">Pendidikan (Sekolah/TK)</option>
+                <option value="Ibadah">Ibadah (Masjid/Musholla)</option>
+                <option value="UMKM">UMKM / Toko / Tenun</option>
+                <option value="Fasilitas Umum">Fasilitas Umum / Balai</option>
+                <option value="Kesehatan">Kesehatan / Posyandu</option>
+                <option value="Pertanian">Pertanian / Sawah</option>
+                <option value="Lainnya">Lainnya</option>
+              </select>
+            </div>
+
+            <div class="form-group-editor">
+              <label>Warna Marker:</label>
+              <input type="color" id="form-poi-color" value="#10b981" style="height: 38px; padding: 2px; cursor: pointer;">
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group-editor">
+              <label>Latitude (Lintang):*</label>
+              <input type="number" step="any" id="form-poi-lat" required>
+            </div>
+            <div class="form-group-editor">
+              <label>Longitude (Bujur):*</label>
+              <input type="number" step="any" id="form-poi-lng" required>
+            </div>
+          </div>
+
+          <div class="form-group-editor">
+            <label>Alamat / RT RW:</label>
+            <input type="text" id="form-poi-alamat" placeholder="Contoh: Dukuh Sempu RT 01/RW 01">
+          </div>
+
+          <div class="form-group-editor">
+            <label>Deskripsi Keterangan:</label>
+            <textarea id="form-poi-desc" rows="2" placeholder="Tuliskan keterangan tempat..."></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button type="submit" class="btn-modal-action primary">
+              <i class="fa-solid fa-floppy-disk"></i> Simpan Titik Lokasi
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETAIL POI (VIEW MODE) -->
+  <div id="modal-detail" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header-banner" id="modal-banner-icon">
+        📍
+        <button id="modal-close" class="modal-close-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <span id="modal-cat-badge" class="modal-category-badge">Kategori</span>
+        <h2 id="modal-title">Nama Tempat</h2>
+        <div class="modal-detail-row"><i class="fa-solid fa-location-dot"></i><span id="modal-address">Alamat</span></div>
+        <p id="modal-desc" style="font-size: 0.82rem; color: var(--text-muted); margin: 12px 0; line-height: 1.5;">Deskripsi...</p>
+        <div class="modal-actions">
+          <button id="btn-zoom-to-poi" class="btn-modal-action primary"><i class="fa-solid fa-crosshairs"></i> Zoom Ke Lokasi</button>
+          <button id="btn-delete-poi" class="btn-modal-action secondary" style="color: #ef4444; border-color: rgba(239,68,68,0.3);"><i class="fa-solid fa-trash"></i> Hapus</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

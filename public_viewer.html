@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peta Digital Interaktif GIS - Public Web Viewer</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+  
+  <!-- Embedded Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app-container">
+    
+    <!-- HEADER NAVBAR (PUBLIC VIEW-ONLY) -->
+    <header class="app-header">
+      <div class="brand-container">
+        <div class="brand-icon">
+          <i class="fa-solid fa-map-location-dot"></i>
+        </div>
+        <div class="brand-text">
+          <h1 id="header-title">PETA DIGITAL INTERAKTIF</h1>
+          <p id="header-subtitle">Peta GIS Spasial & Informasi Wilayah Interaktif</p>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <button id="btn-open-export-modal" class="btn-header btn-header-export">
+          <i class="fa-solid fa-camera-retro"></i>
+          <span>Ekspor Area (Gambar / PDF)</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN WORKSPACE -->
+    <div class="main-workspace">
+      
+      <!-- SIDEBAR PANEL -->
+      <aside id="sidebar" class="sidebar-panel">
+        
+        <!-- Sidebar Navigation Tabs -->
+        <div class="sidebar-tabs">
+          <button class="tab-btn active" data-tab="tab-pois">
+            <i class="fa-solid fa-layer-group"></i> POI & Lokasi
+          </button>
+          <button class="tab-btn" data-tab="tab-layers">
+            <i class="fa-solid fa-map"></i> Layer Peta
+          </button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div class="tab-content-container">
+
+          <!-- TAB POI & PENCARIAN -->
+          <div id="tab-pois" class="tab-pane active">
+            <div class="search-box-wrapper">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="search-input" placeholder="Cari nama lokasi, tempat...">
+            </div>
+
+            <div class="category-chips" id="category-filter">
+              <button class="chip active" data-cat="all">Semua</button>
+              <button class="chip" data-cat="Pendidikan">Pendidikan</button>
+              <button class="chip" data-cat="Ibadah">Ibadah</button>
+              <button class="chip" data-cat="UMKM">UMKM</button>
+              <button class="chip" data-cat="Fasilitas Umum">Fasum</button>
+              <button class="chip" data-cat="Pertanian">Pertanian</button>
+            </div>
+
+            <div class="section-title">
+              <span>Daftar Titik Lokasi</span>
+              <span id="poi-count-badge" class="poi-tag">0 Titik</span>
+            </div>
+
+            <div id="poi-list-container" class="poi-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- TAB LAYER & BASEMAP -->
+          <div id="tab-layers" class="tab-pane">
+            <div class="layer-section">
+              <div class="section-title">Pilih Basemap</div>
+              <div class="basemap-grid">
+                <div class="basemap-item active" data-basemap="osm">
+                  <i class="fa-solid fa-map-marked-alt"></i>
+                  <span>Standard</span>
+                </div>
+                <div class="basemap-item" data-basemap="satellite">
+                  <i class="fa-solid fa-satellite"></i>
+                  <span>Satelit</span>
+                </div>
+                <div class="basemap-item" data-basemap="dark">
+                  <i class="fa-solid fa-moon"></i>
+                  <span>Dark GIS</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Sidebar Toggle Button -->
+      <button id="sidebar-toggle" class="sidebar-toggle-btn" title="Buka/Tutup Sidebar">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <!-- MAP CANVAS -->
+      <div id="map"></div>
+
+    </div>
+  </div>
+
+  <!-- MODAL DETAIL POI (VIEW MODE) -->
+  <div id="modal-detail" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header-banner" id="modal-banner-icon">
+        📍
+        <button id="modal-close" class="modal-close-btn"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <span id="modal-cat-badge" class="modal-category-badge">Kategori</span>
+        <h2 id="modal-title">Nama Tempat</h2>
+        <div class="modal-detail-row"><i class="fa-solid fa-location-dot"></i><span id="modal-address">Alamat</span></div>
+        <p id="modal-desc" style="font-size: 0.82rem; color: var(--text-muted); margin: 12px 0; line-height: 1.5;">Deskripsi...</p>
+        <div class="modal-actions">
+          <button id="btn-zoom-to-poi" class="btn-modal-action primary"><i class="fa-solid fa-crosshairs"></i> Zoom Ke Lokasi</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

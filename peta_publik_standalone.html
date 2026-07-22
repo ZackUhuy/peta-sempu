@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Peta Digital Interaktif GIS - Public Web Viewer</title>
+  
+  <!-- CDN Dependencies -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- 100% Embedded CSS Styles -->
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-hover: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --primary: #10b981;
+      --primary-hover: #059669;
+      --primary-light: rgba(16, 185, 129, 0.15);
+      --accent-indigo: #6366f1;
+      --accent-amber: #f59e0b;
+      --accent-blue: #3b82f6;
+      --border-color: rgba(255, 255, 255, 0.1);
+      --font-main: 'Plus Jakarta Sans', sans-serif;
+      --font-heading: 'Outfit', sans-serif;
+      --sidebar-width: 380px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font-main); }
+    body, html { width: 100%; height: 100%; overflow: hidden; background-color: var(--bg-dark); color: var(--text-main); }
+    #app-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+
+    header.app-header {
+      height: 64px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 1000;
+    }
+    .brand-container { display: flex; align-items: center; gap: 14px; }
+    .brand-icon { width: 42px; height: 42px; background: linear-gradient(135deg, var(--primary), var(--accent-indigo)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: #fff; }
+    .brand-text h1 { font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; color: #a7f3d0; }
+    .brand-text p { font-size: 0.78rem; color: var(--text-muted); }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .btn-header { background: rgba(255, 255, 255, 0.08); border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+    .btn-header-export { background: rgba(16, 185, 129, 0.15); border-color: var(--primary); color: #a7f3d0; }
+
+    .main-workspace { flex: 1; display: flex; position: relative; overflow: hidden; height: calc(100vh - 64px); width: 100vw; }
+    aside.sidebar-panel { width: var(--sidebar-width); background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(16px); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 900; transition: transform 0.3s ease; }
+    aside.sidebar-panel.collapsed { transform: translateX(calc(-1 * var(--sidebar-width))); position: absolute; top: 0; bottom: 0; }
+    .sidebar-toggle-btn { position: absolute; top: 16px; left: calc(var(--sidebar-width) + 12px); z-index: 950; width: 40px; height: 40px; background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    aside.sidebar-panel.collapsed + .sidebar-toggle-btn { left: 16px; }
+
+    .sidebar-tabs { display: flex; background: rgba(15, 23, 42, 0.8); border-bottom: 1px solid var(--border-color); padding: 6px; gap: 4px; }
+    .tab-btn { flex: 1; background: transparent; border: none; color: var(--text-muted); padding: 10px 4px; font-size: 0.76rem; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .tab-btn.active { background: var(--primary-light); color: var(--primary); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .tab-content-container { flex: 1; overflow-y: auto; padding: 18px; }
+    .tab-pane { display: none; } .tab-pane.active { display: block; }
+
+    .search-box-wrapper { position: relative; margin-bottom: 14px; }
+    .search-box-wrapper input { width: 100%; background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px 12px 10px 36px; color: var(--text-main); font-size: 0.85rem; outline: none; }
+    .search-box-wrapper i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
+    .category-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .chip { background: rgba(255, 255, 255, 0.06); border: 1px solid var(--border-color); color: var(--text-muted); padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+    .chip.active { background: var(--primary); color: #000; }
+
+    .section-title { font-family: var(--font-heading); font-size: 0.9rem; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+    .poi-list { display: flex; flex-direction: column; gap: 10px; }
+    .poi-card { background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; cursor: pointer; display: flex; gap: 12px; align-items: flex-start; transition: all 0.2s ease; }
+    .poi-card:hover { background: rgba(30, 41, 59, 0.8); border-color: var(--primary); }
+    .poi-icon-badge { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #fff; flex-shrink: 0; }
+    .poi-info h4 { font-size: 0.88rem; font-weight: 600; margin-bottom: 2px; } .poi-info p { font-size: 0.75rem; color: var(--text-muted); }
+    .poi-meta { display: flex; gap: 6px; margin-top: 6px; } .poi-tag { font-size: 0.68rem; background: rgba(255, 255, 255, 0.08); padding: 2px 6px; border-radius: 4px; color: var(--text-muted); }
+
+    .layer-section { background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+    .basemap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+    .basemap-item { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 4px; text-align: center; cursor: pointer; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); }
+    .basemap-item.active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+
+    #map { flex: 1; height: 100%; width: 100%; z-index: 1; background: #090d16; }
+
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(8px); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.25s ease; }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; position: relative; }
+    .modal-header-banner { height: 100px; background: linear-gradient(135deg, var(--bg-dark), var(--bg-card-hover)); display: flex; align-items: center; justify-content: center; font-size: 3.5rem; position: relative; border-bottom: 1px solid var(--border-color); }
+    .modal-close-btn { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; border-radius: 50%; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: var(--text-main); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .modal-body { padding: 20px; } .modal-body h2 { font-family: var(--font-heading); font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }
+    .modal-category-badge { display: inline-block; background: var(--primary-light); color: var(--primary); border: 1px solid rgba(16, 185, 129, 0.3); padding: 3px 8px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; margin-bottom: 10px; }
+    .modal-detail-row { display: flex; align-items: flex-start; gap: 8px; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+    .btn-modal-action { flex: 1; padding: 10px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; cursor: pointer; border: none; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn-modal-action.primary { background: var(--primary); color: #000; }
+
+    .leaflet-pill-marker-container { background: transparent !important; border: none !important; }
+    .unified-pill-marker { display: inline-block; background-color: #0f172a !important; color: #ffffff !important; border: 2px solid var(--primary); border-radius: 30px; padding: 3px 8px 3px 4px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.8); white-space: nowrap; cursor: pointer; }
+    .pill-icon { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #ffffff !important; font-size: 0.75rem; flex-shrink: 0; }
+    .pill-title { font-family: Arial, sans-serif !important; font-size: 12px !important; font-weight: bold !important; color: #ffffff !important; display: inline-block !important; white-space: nowrap !important; }
+  </style>
+</head>
+<body>
+  <div id="app-container">
+    <header class="app-header">
+      <div class="brand-container">
+        <div class="brand-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+        <div class="brand-text">
+          <h1 id="header-title">DUKUH SEMPU</h1>
+          <p id="header-subtitle">Peta GIS Spasial & Informasi Wilayah Interaktif</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-open-export-modal" class="btn-header btn-header-export">
+          <i class="fa-solid fa-camera-retro"></i>
+          <span>Ekspor Area (Gambar / PDF)</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="main-workspace">
+      <aside id="sidebar" class="sidebar-panel">
+        <div class="sidebar-tabs">
+          <button class="tab-btn active" data-tab="tab-pois"><i class="fa-solid fa-layer-group"></i> POI & Lokasi</button>
+          <button class="tab-btn" data-tab="tab-layers"><i class="fa-solid fa-map"></i> Layer Peta</button>
+        </div>
+
+        <div class="tab-content-container">
+          <div id="tab-pois" class="tab-pane active">
+            <div class="search-box-wrapper">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="search-input" placeholder="Cari nama lokasi, tempat...">
+            </div>
+            <div class="category-chips" id="category-filter">
+              <button class="chip active" data-cat="all">Semua</button>
+              <button class="chip" data-cat="Pendidikan">Pendidikan</button>
+              <button class="chip" data-cat="Ibadah">Ibadah</button>
+              <button class="chip" data-cat="UMKM">UMKM</button>
+              <button class="chip" data-cat="Fasilitas Umum">Fasum</button>
+              <button class="chip" data-cat="Pertanian">Pertanian</button>
+            </div>
+            <div class="section-title">
+              <span>Daftar Titik Lokasi</span>
+              <span id="poi-count-badge" class="poi-tag">0 Titik</span>
+            </div>
+            <div id="poi-list-container" class="poi-list"></div>
+          </div>
+
+          <div id="tab-layers" class="tab-pane">
+            <div class="layer-section">
+              <div class="section-title">Pilih Basemap</div>
+              <div class="basemap-grid">
+                <div class="basemap-item active" data-basemap="osm"><i class="fa-solid fa-map-marked-alt"></i><span>Standard</span></div>
+                <div class="basemap-item" data-basemap="satellite"><i class="fa-solid fa-satellite"></i><span>Satelit</span></div>
+                <div class="basemap-item" data-basemap="dark"><i class="fa-solid fa-moon"></i><span>Dark GIS</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <button id="sidebar-toggle" class="sidebar-toggle-btn"><i class="fa-solid fa-bars"></i></button>
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <!-- MODAL EXPORT CUSTOM -->
+  <div id="modal-export-custom" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header-banner" style="height: auto; padding: 18px; justify-content: space-between;">
+        <h3 style="font-size: 1rem; color: #fff;"><i class="fa-solid fa-camera-retro"></i> Ekspor Peta Area Custom</h3>
+        <button id="modal-export-close" class="modal-close-btn" style="position: static;"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group-editor">
+          <label style="font-size: 0.82rem; font-weight: 700; display: block; margin-bottom: 6px;">Format Berkas Output:</label>
+          <div class="export-format-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+            <label class="radio-card active" style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center; cursor: pointer;"><input type="radio" name="export-format" value="png" checked> PNG</label>
+            <label class="radio-card" style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center; cursor: pointer;"><input type="radio" name="export-format" value="jpeg"> JPEG</label>
+            <label class="radio-card" style="background: rgba(255,255,255,0.05); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); text-align: center; cursor: pointer;"><input type="radio" name="export-format" value="pdf"> PDF</label>
+          </div>
+        </div>
+        <div class="modal-actions" style="margin-top: 20px;">
+          <button id="btn-process-export" class="btn-modal-action primary" style="padding: 12px;"><i class="fa-solid fa-download"></i> Generasi & Unduh Berkas</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETAIL -->
+  <div id="modal-detail" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header-banner" id="modal-banner-icon">📍<button id="modal-close" class="modal-close-btn"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="modal-body">
+        <span id="modal-cat-badge" class="modal-category-badge">Kategori</span>
+        <h2 id="modal-title">Nama Tempat</h2>
+        <div class="modal-detail-row"><i class="fa-solid fa-location-dot"></i><span id="modal-address">Alamat</span></div>
+        <p id="modal-desc" style="font-size: 0.82rem; color: var(--text-muted); margin: 12px 0;">Deskripsi...</p>
+        <div class="modal-actions">
+          <button id="btn-zoom-to-poi" class="btn-modal-action primary"><i class="fa-solid fa-crosshairs"></i> Zoom Ke Lokasi</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 100% INLINE DATA & APPLICATION LOGIC -->
+  <script>
+    const DUKUH_SEMPU_DATA = {
+      profile: { nama: "Dukuh Sempu", desa: "Desa Tlingsing", kecamatan: "Kecamatan Cawas", kabupaten: "Kabupaten Klaten", provinsi: "Jawa Tengah", koordinatPusat: [-7.7745, 110.7305], zoomAwal: 16 },
+      batasDukuhGeoJSON: { "type": "FeatureCollection", "features": [] },
+      zonasiRTGeoJSON: { "type": "FeatureCollection", "features": [] },
+      landUseGeoJSON: { "type": "FeatureCollection", "features": [] },
+      infrastrukturGeoJSON: { "type": "FeatureCollection", "features": [] },
+      pois: [],
+      statistik: { pendudukTotal: 0, luasTotalHektar: 0 }
+    };
+  </script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
