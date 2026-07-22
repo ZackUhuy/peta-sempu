@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
       dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, crossOrigin: true })
     };
 
-    currentBasemap = basemaps.osm;
+    currentBasemap = basemaps.satellite;
     currentBasemap.addTo(map);
     map._basemaps = basemaps;
 
