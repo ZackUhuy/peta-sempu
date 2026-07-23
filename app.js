@@ -857,6 +857,10 @@ document.addEventListener('DOMContentLoaded', () => {
           map.flyTo([poi.lat, poi.lng], 18, { duration: 1 });
           const targetMarker = poiMarkers.find(m => m.poiData.id === poi.id);
           if (targetMarker) targetMarker.openPopup();
+          if (window.innerWidth <= 768) {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) sidebar.classList.add('collapsed');
+          }
         }
       });
 
@@ -885,6 +889,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const sidebar = document.getElementById('sidebar');
     const sidebarToggle = document.getElementById('sidebar-toggle');
     if (sidebarToggle && sidebar) {
+      if (window.innerWidth <= 768) {
+        sidebar.classList.add('collapsed');
+      }
       sidebarToggle.addEventListener('click', () => {
         sidebar.classList.toggle('collapsed');
         setTimeout(() => { if (map) map.invalidateSize(); }, 300);
