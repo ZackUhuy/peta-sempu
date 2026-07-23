@@ -606,31 +606,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function generateMapCapture(format, pdfOrientation, incHeader, incLegend, incDate) {
     const tempExportShape = exportPolygonShape;
+    const tempExportPoints = [...exportPolygonPoints];
+
+    // Temporarily hide export crop boundary line & markers
     if (exportPolygonShape && map) map.removeLayer(exportPolygonShape);
     exportPolygonMarkers.forEach(m => { if (map) map.removeLayer(m); });
+    if (activeDrawingPolyline && map) map.removeLayer(activeDrawingPolyline);
+    if (activeDrawingPolygon && map) map.removeLayer(activeDrawingPolygon);
+    activeDrawingMarkers.forEach(m => { if (map) map.removeLayer(m); });
 
     const mapElement = document.getElementById('map');
     if (map) map.invalidateSize(false);
 
-    const canvas = await html2canvas(mapElement, {
-      useCORS: true,
-      allowTaint: true,
-      scale: 2,
-      logging: false,
-      onclone: (clonedDoc) => {
-        const clonedTitles = clonedDoc.querySelectorAll('.pill-title');
-        clonedTitles.forEach(t => {
-          t.style.color = '#ffffff';
-          t.style.fontFamily = 'Arial, sans-serif';
-          t.style.fontWeight = 'bold';
-          t.style.fontSize = '12px';
-        });
-      }
-    });
+    let canvas;
+    try {
+      canvas = await html2canvas(mapElement, {
+        useCORS: true,
+        allowTaint: true,
+        scale: 2,
+        logging: false,
+        onclone: (clonedDoc) => {
+          const clonedTitles = clonedDoc.querySelectorAll('.pill-title');
+          clonedTitles.forEach(t => {
+            t.style.color = '#ffffff';
+            t.style.fontFamily = 'Arial, sans-serif';
+            t.style.fontWeight = 'bold';
+            t.style.fontSize = '12px';
+          });
+        }
+      });
+    } finally {
+      // Restore layers to the map view
+      if (tempExportShape && map) tempExportShape.addTo(map);
+      exportPolygonMarkers.forEach(m => { if (map) m.addTo(map); });
+      if (activeDrawingPolyline && map) activeDrawingPolyline.addTo(map);
+      if (activeDrawingPolygon && map) activeDrawingPolygon.addTo(map);
+      activeDrawingMarkers.forEach(m => { if (map) m.addTo(map); });
+    }
 
     let finalCanvas = canvas;
 
-    if (exportMode === 'crop' && tempExportShape && map) {
+    if (exportMode === 'crop' && tempExportShape && tempExportPoints.length >= 3 && map) {
       try {
         const bounds = tempExportShape.getBounds();
         const nw = bounds.getNorthWest();
@@ -640,8 +656,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const sePoint = map.latLngToContainerPoint(se);
 
         const scale = 2;
-        const cropX = Math.max(0, Math.min(nwPoint.x, sePoint.x) * scale);
-        const cropY = Math.max(0, Math.min(nwPoint.y, sePoint.y) * scale);
+        const minX = Math.min(nwPoint.x, sePoint.x);
+        const minY = Math.min(nwPoint.y, sePoint.y);
+
+        const cropX = Math.max(0, minX * scale);
+        const cropY = Math.max(0, minY * scale);
         const cropW = Math.max(50, Math.abs(sePoint.x - nwPoint.x) * scale);
         const cropH = Math.max(50, Math.abs(sePoint.y - nwPoint.y) * scale);
 
@@ -649,6 +668,19 @@ document.addEventListener('DOMContentLoaded', () => {
         cropCanvas.width = cropW;
         cropCanvas.height = cropH;
         const ctx = cropCanvas.getContext('2d');
+
+        // Clip strictly along the user's custom polygon coordinates!
+        ctx.beginPath();
+        tempExportPoints.forEach((pt, idx) => {
+          const p = map.latLngToContainerPoint(pt);
+          const x = (p.x - minX) * scale;
+          const y = (p.y - minY) * scale;
+          if (idx === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+        ctx.clip();
+
         ctx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
         
         finalCanvas = cropCanvas;
